@@ -227,7 +227,7 @@ const ERRORS = {
 ```
 
 # Example Code
-Code mẫu nằm trong folder `example` cùng reposity này, ngân hàng đối tác có thể sử dụng để tham khảo (hoặc sử dụng luôn) để implement phần liên kết API với ngân hàng HPK.
+Code mẫu nằm trong folder [example](https://github.com/DangNhuHuynh/LTHD-API-Document/tree/master/example), ngân hàng đối tác có thể sử dụng để tham khảo (hoặc sử dụng luôn) để implement phần liên kết API với ngân hàng HPK.
 ```bash
 cd example
 npm install

@@ -12,6 +12,8 @@ async function run() {
 
   console.log('======RESPONSE======')
   console.log(result)
+
+  // TODO: verify hash & signature of response use HPK Secret Key & HPK RSA Public Key
 }
 
 run()
