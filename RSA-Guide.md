@@ -1,21 +1,25 @@
 - [Overview](#overview)
 - [Authentication](#authentication)
+  * [Hash](#1-hash)
+  * [Signature](#2-signature)
+  * [Verify Hash](#3-verify-hash)
+  * [Verify Signature](#4-verify-signature)
 - [API](#api)
   * [Truy vấn thông tin khách hàng](#1-customer-info)
   * [Nạp tiền vào tài khoản](#2-transfer-money)
-  * [Trừ tiền vào tài khoản](#2-minus-money)
+  * [Trừ tiền vào tài khoản](#3-minus-money)
 - [Danh sách các error](#errors)
 - [Example Code](#example-code)
 
 # Overview:
 Ngân hàng HPK cung cấp các REST API được kết nối qua giao thức HTTP, các thông tin cơ bản:
-- Base Endpoint: *BASE_URL/link-api/*.
-- Cơ chế hash: *HMAC sha256* với `secret key` là *9yvs4KZJFQMK22tvTvLPhT7K*.
-- Cơ chế mã hoá bất đối xứng: *RSA* với `public key` được đặt trong thư mục storages.
+- **Base Endpoint**: *BASE_URL/link-api/*.
+- **Cơ chế hash**: *HMAC sha256* với `secret key` là *9yvs4KZJFQMK22tvTvLPhT7K*.
+- **Cơ chế mã hoá bất đối xứng**: *RSA* với `public key` được đặt trong thư mục storages.
 
 Để kết nối với ngân hàng HPK, ngân hàng đối tác cần cung cấp các thông tin sau:
-- Secret key: để hash lại gói tin khi cần verify các request đến từ phía đối tác.
-- File RSA public key: dùng để verify signature của các request đến từ phía đối tác.
+- **Secret key**: để hash lại gói tin khi cần verify các request đến từ phía đối tác.
+- **File RSA public key**: dùng để verify signature của các request đến từ phía đối tác.
 
 # Authentication:
 Request body của tất cả request có dạng như sau:
@@ -34,8 +38,10 @@ const body = {
 }
 ```
 
-Cách tạo `hash` và `signature (dành cho các request chuyền tiền)`:
-- Hash: là chuỗi kí tự được tạo ra bằng cách sử dụng `HMAC Sha256` lên request data:
+Cách tạo `hash` và `signature (dành cho các request chuyền tiền)` xem phía dưới.
+
+### 1. Hash
+**Hash** là chuỗi kí tự được tạo ra bằng cách sử dụng `HMAC Sha256` lên request data:
 ```js
 const crypto = require('crypto')
 const SECRET_HMAC = 'partner_secret_key' // Hash secret key của ngân hàng đối tác
@@ -52,7 +58,8 @@ hmac.update(data)
 const hash = hmac.digest('hex')
 ```
 
-- Signature: chữ kí số được tạo ra bằng cách sử dụng cơ chế mã hoá `RSA` với cipher là `aes-256-cbc`
+### 2. Signature
+**Signature**: chữ kí số được tạo ra bằng cách sử dụng cơ chế mã hoá `RSA` với cipher là `aes-256-cbc`
 ```js
 const crypto = require('crypto')
 const path = require('path')
@@ -89,6 +96,33 @@ if(!Buffer.isBuffer(data)) {
 const sign = crypto.sign(algorithm, buffer, privateKeyObject)
 ```
 
+### 3. Verify Hash
+Đối với các API chuyển tiền, response sẽ bao gồm `hash`, ngân hàng đối tác cần sử dụng `Hash secret key`của HPK để verify lại hash này:
+```js
+    const crypto = require('crypto')
+    const HPK_SECRET_HMAC = '9yvs4KZJFQMK22tvTvLPhT7K'
+    const jsonResponseData = JSON.stringify(response.data)
+
+    const hmac = crypto.createHmac('sha256', HPK_SECRET_HMAC)
+    hmac.update(jsonResponseData)
+    const reHashed = hmac.digest('hex')    
+
+    const verifyHashResult = common.verifyHash(response.hash, reHashed)
+    console.log(verifyHashResult) // True or False
+```
+NOTE: code của function `common.verifyHash` trong ví dụ trên nằm trong folder [example](https://github.com/DangNhuHuynh/LTHD-API-Document/tree/master/example)
+
+### 4. Verify Signature
+Đối với các API chuyển tiền, response sẽ bao gồm `sign`, ngân hàng đối tác cần sử dụng `RSA public key`của HPK để verify lại signature này:
+```js
+    const jsonResponseData = JSON.stringify(response.data)
+
+    const verifySignResult = common.verifySign(jsonResponseData, response.sign)
+    console.log(verifySignResult) // True or False
+```
+NOTE: code của function `common.verifySign` trong ví dụ trên nằm trong folder [example](https://github.com/DangNhuHuynh/LTHD-API-Document/tree/master/example)
+ 
+
 # API
 ### 1. Customer Info
 Endpoint: `/account`.
@@ -117,7 +151,7 @@ const response = {
 ```
 
 ### 2. Transfer money
-Endpoint: `/money-transfer/plus`.
+**Endpoint**: `/money-transfer/plus`.
 
 Request data bao gồm:
 ```js
@@ -150,7 +184,7 @@ const response = {
 ```
 
 ### 3. Minus money
-Endpoint: `/money-transfer/minus`.
+**Endpoint**: `/money-transfer/minus`.
 
 Request data bao gồm:
 ```js
@@ -239,5 +273,5 @@ node fake-fetch-link-account.js
 node fake-plus-money.js
 
 # Transfer money (minus money)
-fake-minus-money.js
+node fake-minus-money.js
 ```
