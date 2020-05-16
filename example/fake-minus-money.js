@@ -10,10 +10,16 @@ async function run() {
   }
   const result = await common.createRequestWithSignature({ endpoint: 'money-transfer/minus', data })
 
-  console.log('======RESPONSE======')
-  console.log(result)
+  const jsonResponseData = JSON.stringify(result.data)
+  const verifySignResult = common.verifySign(jsonResponseData, result.sign)
+  const verifyHashResult = common.verifyHash(result.hash, common.hash(jsonResponseData, common.LINK_SECRET_HMAC))
 
-  // TODO: verify hash & signature of response use HPK Secret Key & HPK RSA Public Key
+  if (verifySignResult && verifyHashResult) {
+    console.log('OK.')
+    return
+  }
+
+  console.log('Verify fail.')
 }
 
 run()

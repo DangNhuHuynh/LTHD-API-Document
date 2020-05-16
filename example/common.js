@@ -7,6 +7,7 @@ const BASE_URL = 'http://localhost:3001/link-api/'
 const PARTNER_ID = '842694'
 const SECRET_RSA = 'partner_rsa_secret_key'
 const SECRET_HMAC = 'partner_secret_key'
+const LINK_SECRET_HMAC = '9yvs4KZJFQMK22tvTvLPhT7K'
 
 const privateKeyPath = path.join(__dirname, 'fake_private.pem')
 const linkPublicKeyPath = path.join(__dirname, '../storages/public.pem')
@@ -32,7 +33,7 @@ function createRequestWithHashing({ endpoint, data }) {
   const payload = _appendBody(data)
   const body = {
     data: payload,
-    hash: _hash(JSON.stringify(payload)),
+    hash: hash(JSON.stringify(payload), SECRET_HMAC),
     partnerId: PARTNER_ID,
   }
 
@@ -48,8 +49,8 @@ function createRequestWithSignature({ endpoint, data }) {
   const strPayload = JSON.stringify(payload)
   const body = {
     data: payload,
-    hash: _hash(strPayload),
-    sign: _sign(strPayload),
+    hash: hash(strPayload, SECRET_HMAC),
+    sign: sign(strPayload),
     partnerId: PARTNER_ID,
   }
 
@@ -58,6 +59,41 @@ function createRequestWithSignature({ endpoint, data }) {
     url: BASE_URL + endpoint,
     body,
   })
+}
+
+function sign(data) {
+  let buffer = data
+  if(!Buffer.isBuffer(data)) {
+    buffer = Buffer.from(data, encoding)
+  }
+  return crypto.sign(algorithm, buffer, _getPrivateKeyObject(privateKeyString))
+}
+
+function hash(data, secretHmac) {
+  const hmac = crypto.createHmac('sha256', secretHmac)
+  hmac.update(data)
+  return hmac.digest('hex')
+}
+
+function verifySign(data, signature) {
+  let buffer = data
+  if(!Buffer.isBuffer(data)) {
+    buffer = Buffer.from(data, encoding)
+  }
+  const signBuffer = Buffer.from(signature, encoding)
+  return crypto.verify(algorithm, buffer, _getPublicKeyObject(linkPublicKeyString), signBuffer)
+}
+
+function verifyHash(hash1, hash2) {
+  let buffer1 = hash1
+  if(!Buffer.isBuffer(hash1)) {
+    buffer1 = Buffer.from(hash1, encoding)
+  }
+  let buffer2 = hash2
+  if(!Buffer.isBuffer(hash2)) {
+    buffer2 = Buffer.from(hash2, encoding)
+  }
+  return crypto.timingSafeEqual(buffer1, buffer2)
 }
 
 function _appendBody(data) {
@@ -76,48 +112,12 @@ function _getPublicKeyObject(publicKeyString) {
   return crypto.createPublicKey({...publicKeyOption, key: publicKeyString})
 }
 
-function _sign(data) {
-  let buffer = data
-  if(!Buffer.isBuffer(data)) {
-    buffer = Buffer.from(data, encoding)
-  }
-  return crypto.sign(algorithm, buffer, _getPrivateKeyObject(privateKeyString))
-}
-
-function _hash(data) {
-  const hmac = crypto.createHmac('sha256', SECRET_HMAC)
-  hmac.update(data)
-  return hmac.digest('hex')
-}
-
-/**
- * ===========================================================================
- * For verify hash & signature in response
- * ===========================================================================
- * **/
-function verifySignature(data, signature, publicKeyString) {
-  let buffer = data
-  if(!Buffer.isBuffer(data)) {
-    buffer = Buffer.from(data, encoding)
-  }
-  return crypto.verify(algorithm, buffer, _getPublicKeyObject(publicKeyString), signature)
-}
-
-function verifyHash(hash1, hash2) {
-  let buffer1 = hash1
-  if(!Buffer.isBuffer(hash1)) {
-    buffer1 = Buffer.from(hash1, encoding)
-  }
-  let buffer2 = hash2
-  if(!Buffer.isBuffer(hash2)) {
-    buffer2 = Buffer.from(hash2, encoding)
-  }
-  return crypto.timingSafeEqual(buffer1, buffer2)
-}
-
 module.exports = {
   createRequestWithHashing,
   createRequestWithSignature,
-  verifySignature,
+  sign,
+  hash,
+  verifySign,
   verifyHash,
+  LINK_SECRET_HMAC,
 }
