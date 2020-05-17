@@ -66,7 +66,7 @@ function sign(data) {
   if(!Buffer.isBuffer(data)) {
     buffer = Buffer.from(data, encoding)
   }
-  return crypto.sign(algorithm, buffer, _getPrivateKeyObject(privateKeyString))
+  return crypto.sign(algorithm, buffer, _getPrivateKeyObject(privateKeyString)).toString('base64')
 }
 
 function hash(data, secretHmac) {
@@ -80,7 +80,8 @@ function verifySign(data, signature) {
   if(!Buffer.isBuffer(data)) {
     buffer = Buffer.from(data, encoding)
   }
-  const signBuffer = Buffer.from(signature, encoding)
+  const signDecodedBase64 = Buffer.from(signature, 'base64')
+  const signBuffer = Buffer.from(signDecodedBase64, encoding)
   return crypto.verify(algorithm, buffer, _getPublicKeyObject(linkPublicKeyString), signBuffer)
 }
 

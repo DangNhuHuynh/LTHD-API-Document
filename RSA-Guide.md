@@ -59,7 +59,7 @@ const hash = hmac.digest('hex')
 ```
 
 ### 2. Signature
-**Signature**: chữ kí số được tạo ra bằng cách sử dụng cơ chế mã hoá `RSA` với cipher là `aes-256-cbc`
+**Signature**: chữ kí số được tạo ra bằng cách sử dụng cơ chế mã hoá `RSA` với cipher là `aes-256-cbc` và sau đó encode lại bằng base64
 ```js
 const crypto = require('crypto')
 const path = require('path')
@@ -93,7 +93,7 @@ let buffer = data
 if(!Buffer.isBuffer(data)) {
     buffer = Buffer.from(data, encoding)
 }
-const sign = crypto.sign(algorithm, buffer, privateKeyObject)
+const sign = crypto.sign(algorithm, buffer, privateKeyObject).toString('base64')
 ```
 
 ### 3. Verify Hash
